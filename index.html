@@ -1,0 +1,346 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>주식 시뮬레이터</title>
+  <style>
+    body {
+      background: #f4f7fa;
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      margin: 0; padding: 20px;
+      display: flex; justify-content: center;
+    }
+    #app {
+      background: #fff;
+      border-radius: 12px;
+      box-shadow: 0 10px 25px rgba(0,0,0,0.1);
+      padding: 30px 40px;
+      width: 1000px;
+    }
+    h1 {
+      text-align: center;
+      color: #333;
+      margin-bottom: 15px;
+      font-weight: 700;
+      letter-spacing: 1.5px;
+    }
+    #timer {
+      text-align: center;
+      font-size: 1.1rem;
+      color: #555;
+      margin-bottom: 20px;
+      font-weight: 600;
+      letter-spacing: 1px;
+    }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      box-shadow: 0 5px 15px rgba(0,0,0,0.05);
+    }
+    thead {
+      background: linear-gradient(90deg, #0052D4, #4364F7, #6FB1FC);
+      color: white;
+    }
+    th, td {
+      padding: 12px 10px;
+      text-align: center;
+      border-bottom: 1px solid #eee;
+      font-size: 0.95rem;
+      vertical-align: middle;
+    }
+    tbody tr:hover {
+      background: #f0f8ff;
+      transition: background-color 0.3s ease;
+    }
+    button {
+      background: #4364F7;
+      border: none;
+      color: white;
+      padding: 6px 14px;
+      border-radius: 6px;
+      cursor: pointer;
+      font-weight: 600;
+      transition: background-color 0.3s ease;
+      user-select: none;
+    }
+    button:disabled {
+      background: #ccc;
+      cursor: not-allowed;
+    }
+    button:hover:not(:disabled) {
+      background: #2a43c1;
+    }
+    .green {
+      color: #dc3545; /* 빨강(상승) */
+      font-weight: 700;
+    }
+    .red {
+      color: #007bff; /* 파랑(하락) */
+      font-weight: 700;
+    }
+    #eventBox {
+      margin-top: 25px;
+      padding: 18px 25px;
+      background: #e9f0ff;
+      border-left: 5px solid #4364F7;
+      font-size: 1.1rem;
+      font-weight: 600;
+      color: #2a3a8f;
+      border-radius: 6px;
+      min-height: 48px;
+      user-select: none;
+    }
+    /* 차트 막대 그리기 */
+    .chart-container {
+      display: flex;
+      justify-content: center;
+      align-items: flex-end;
+      gap: 3px;
+      height: 30px;
+      width: 140px;
+      margin: 0 auto;
+    }
+    .bar {
+      width: 10px;
+      border-radius: 3px 3px 0 0;
+    }
+    .bar.up {
+      background-color: #dc3545; /* 빨강 */
+    }
+    .bar.down {
+      background-color: #007bff; /* 파랑 */
+    }
+  </style>
+</head>
+<body>
+  <div id="app">
+    <h1>주식 시뮬레이터</h1>
+    <div id="timer">다음 주가 갱신까지: <span id="timerSeconds">10</span>초</div>
+    <div style="margin-bottom:15px; font-weight:600; font-size:1rem; color:#444;">
+      현재 자본금: <span id="capital">100,000</span>
+    </div>
+    <table>
+      <thead>
+        <tr>
+          <th>주식명</th>
+          <th>분야</th>
+          <th>현재가</th>
+          <th>변동률(%)</th>
+          <th>변동액(원)</th>
+          <th>보유수량</th>
+          <th>매수</th>
+          <th>매도</th>
+          <th>최근 변동 차트</th>
+        </tr>
+      </thead>
+      <tbody id="stockTableBody"></tbody>
+    </table>
+    <div id="eventBox">최근 이벤트가 없습니다.</div>
+  </div>
+
+  <script>
+    const stocks = [
+      // 식품관련
+      {name:"롯데칠성", category:"식품", price: 10000, owned:0, changePercent:0, changeAmount:0, history: []},
+      {name:"오뚜기", category:"식품", price: 50000, owned:0, changePercent:0, changeAmount:0, history: []},
+      {name:"농심", category:"식품", price: 70000, owned:0, changePercent:0, changeAmount:0, history: []},
+
+      // 전자/반도체관련
+      {name:"삼성전자", category:"전자/반도체", price: 100000, owned:0, changePercent:0, changeAmount:0, history: []},
+      {name:"SK하이닉스", category:"전자/반도체", price: 90000, owned:0, changePercent:0, changeAmount:0, history: []},
+      {name:"LG전자", category:"전자/반도체", price: 80000, owned:0, changePercent:0, changeAmount:0, history: []},
+
+      // 보험관련
+      {name:"삼성생명", category:"보험", price: 120000, owned:0, changePercent:0, changeAmount:0, history: []},
+      {name:"한화생명", category:"보험", price: 85000, owned:0, changePercent:0, changeAmount:0, history: []},
+      {name:"교보생명", category:"보험", price: 70000, owned:0, changePercent:0, changeAmount:0, history: []}
+    ];
+
+    let capital = 100000;
+
+    const stockTableBody = document.getElementById("stockTableBody");
+    const capitalElem = document.getElementById("capital");
+    const eventBox = document.getElementById("eventBox");
+    const timerSecondsElem = document.getElementById("timerSeconds");
+
+    function formatNumber(num) {
+      return num.toLocaleString(undefined, {minimumFractionDigits: 0, maximumFractionDigits: 0});
+    }
+
+    function randomPercent(min, max) {
+      return Math.random() * (max - min) + min;
+    }
+
+    // 하락 확률을 좀 더 올린 getCustomRandomChange
+    function getCustomRandomChange() {
+      const rand = Math.random() * 100;
+      let percent = 0;
+
+if (rand < 15) {
+  percent = randomPercent(6, 15) * -1; // 25%: 크게 하락
+} else if (rand < 45) {
+  percent = randomPercent(1, 5) * -1; // 20%: 소폭 하락
+} else if (rand < 55) {
+  percent = randomPercent(16, 20) * -1; // 10%: 급락
+} else if (rand < 85) {
+  percent = randomPercent(2, 6); // 20%: 소폭 상승
+} else if (rand < 95) {
+  percent = randomPercent(7, 15); // 20%: 중간 상승
+} else {
+  percent = randomPercent(16, 20); // 5%: 급등
+}
+
+      return percent;
+    }
+
+    function updateStocks() {
+      stocks.forEach(stock => {
+        let changePercent = getCustomRandomChange();
+
+        if (eventEffect[stock.category]) {
+          changePercent += eventEffect[stock.category];
+          if (changePercent < -100) changePercent = -100;
+        }
+
+        stock.changePercent = changePercent;
+
+        const changeAmount = Math.floor(stock.price * (changePercent / 100));
+        stock.changeAmount = changeAmount;
+
+        let newPrice = stock.price + changeAmount;
+        if (newPrice < 100) newPrice = 100;
+        stock.price = newPrice;
+
+        // 최근 변동 기록 배열에 저장 (최대 10개 유지)
+        stock.history.push(changePercent);
+        if (stock.history.length > 10) stock.history.shift();
+      });
+
+      // 이벤트 영향 초기화
+      for (let key in eventEffect) {
+        eventEffect[key] = 0;
+      }
+    }
+
+    function renderStocks() {
+      stockTableBody.innerHTML = "";
+      stocks.forEach((stock, idx) => {
+        const tr = document.createElement("tr");
+
+        const priceStr = formatNumber(stock.price);
+        const changePercentStr = stock.changePercent.toFixed(2);
+        const changeAmountStr = formatNumber(stock.changeAmount);
+
+        const changeClass = stock.changePercent > 0 ? "green" : (stock.changePercent < 0 ? "red" : "");
+
+        tr.innerHTML = `
+          <td>${stock.name}</td>
+          <td>${stock.category}</td>
+          <td>${priceStr} 원</td>
+          <td class="${changeClass}">${changePercentStr}%</td>
+          <td class="${changeClass}">${changeAmountStr} 원</td>
+          <td>${stock.owned}</td>
+          <td><button ${capital < stock.price ? "disabled" : ""} data-idx="${idx}" data-action="buy">매수</button></td>
+          <td><button ${stock.owned === 0 ? "disabled" : ""} data-idx="${idx}" data-action="sell">매도</button></td>
+          <td>
+            <div class="chart-container" title="최근 10회 변동률">
+              ${stock.history.map(pct => {
+                const height = Math.min(Math.abs(pct), 20) * 1.5; // 최대 높이 30px (20*1.5)
+                const cls = pct > 0 ? "bar up" : "bar down";
+                return `<div class="${cls}" style="height:${height}px" ></div>`;
+              }).join('')}
+            </div>
+          </td>
+        `;
+
+        stockTableBody.appendChild(tr);
+      });
+    }
+
+    function updateCapital() {
+      capitalElem.textContent = formatNumber(capital) + " 원";
+    }
+
+    stockTableBody.addEventListener("click", e => {
+      if (e.target.tagName !== "BUTTON") return;
+      const idx = Number(e.target.getAttribute("data-idx"));
+      const action = e.target.getAttribute("data-action");
+      const stock = stocks[idx];
+
+      if (action === "buy") {
+        if (capital >= stock.price) {
+          stock.owned++;
+          capital -= stock.price;
+        }
+      } else if (action === "sell") {
+        if (stock.owned > 0) {
+          stock.owned--;
+          capital += stock.price;
+        }
+      }
+      updateCapital();
+      renderStocks();
+    });
+
+    // 이벤트 관련
+    const events = [
+      // 식품 이벤트
+      {category:"식품", textUp:"식품 안전 기준 강화, 식품주 강세!", textDown:"식품 원자재 가격 급등, 식품주 약세!"},
+      // 전자/반도체 이벤트
+      {category:"전자/반도체", textUp:"전자공학에 새로운 기술 발견!", textDown:"전자공학 폭발 위험 대두!"},
+      // 보험 이벤트
+      {category:"보험", textUp:"보험 산업 규제 완화, 보험주 상승!", textDown:"보험금 지급 급증, 보험주 하락!"}
+    ];
+    let eventEffect = {
+      "식품": 0,
+      "전자/반도체": 0,
+      "보험": 0
+    };
+
+    function triggerEvent() {
+      const event = events[Math.floor(Math.random()*events.length)];
+      const up = Math.random() < 0.5;
+      const impactPercent = 20;
+      if (up) {
+        eventEffect[event.category] = impactPercent;
+        eventBox.textContent = event.textUp;
+      } else {
+        eventEffect[event.category] = -impactPercent;
+        eventBox.textContent = event.textDown;
+      }
+    }
+
+    // 타이머 초기화 및 갱신
+    let secondsLeft = 10;
+    function updateTimer() {
+      secondsLeft--;
+      if (secondsLeft < 0) {
+        secondsLeft = 10;
+        updateStocks();
+        renderStocks();
+        updateCapital();
+      }
+      timerSecondsElem.textContent = secondsLeft;
+    }
+
+    // 이벤트 3분마다 실행
+    setInterval(triggerEvent, 60000);
+
+    // 10초마다 주가 갱신, 화면 갱신
+    setInterval(() => {
+      updateStocks();
+      renderStocks();
+      updateCapital();
+      secondsLeft = 10;
+    }, 10000);
+
+    // 1초마다 타이머 업데이트
+    setInterval(updateTimer, 1000);
+
+    // 초기 렌더링
+    renderStocks();
+    updateCapital();
+  </script>
+</body>
+</html>
