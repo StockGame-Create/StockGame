@@ -173,26 +173,27 @@
     }
 
     // 하락 확률을 좀 더 올린 getCustomRandomChange
-    function getCustomRandomChange() {
-      const rand = Math.random() * 100;
-      let percent = 0;
+   function getCustomRandomChange() {
+  const rand = Math.random() * 100;
+  let percent = 0;
 
-if (rand < 15) {
-  percent = randomPercent(6, 15) * -1; // 25%: 크게 하락
-} else if (rand < 45) {
-  percent = randomPercent(1, 5) * -1; // 20%: 소폭 하락
-} else if (rand < 55) {
-  percent = randomPercent(16, 20) * -1; // 10%: 급락
-} else if (rand < 85) {
-  percent = randomPercent(2, 6); // 20%: 소폭 상승
-} else if (rand < 95) {
-  percent = randomPercent(7, 15); // 20%: 중간 상승
-} else {
-  percent = randomPercent(16, 20); // 5%: 급등
+  if (rand < 10) {
+    percent = randomPercent(13, 18) * -1; // 10%: 급락
+  } else if (rand < 25) {
+    percent = randomPercent(6, 10) * -1; // 15%: 중간 하락
+  } else if (rand < 50) {
+    percent = randomPercent(1, 5) * -1; // 25%: 소폭 하락
+  } else if (rand < 75) {
+    percent = randomPercent(1, 5); // 25%: 소폭 상승
+  } else if (rand < 90) {
+    percent = randomPercent(6, 10); // 15%: 중간 상승
+  } else {
+    percent = randomPercent(13, 18); // 10%: 급등
+  }
+
+  return percent;
 }
 
-      return percent;
-    }
 
     function updateStocks() {
       stocks.forEach(stock => {
