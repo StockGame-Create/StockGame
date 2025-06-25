@@ -115,12 +115,22 @@
     .bar.down {
       background-color: #007bff; /* 파랑 */
     }
+    
+    #rankingContainer {
+  display: none;
+}
+
+
+
   </style>
 </head>
 <body>
   <div id="app">
-    <h1>주식 시뮬레이터 (Made By 범서) Ver 1.02 B</h1>
+    <h1>주식 시뮬레이터 (Made By 범서) Ver 1.11 B</h1>
     <div id="timer">다음 주가 갱신까지: <span id="timerSeconds">10</span>초</div>
+    <button id="toggleRankingBtn" style="margin-top: 20px; padding:6px 16px; font-size:1rem; cursor:pointer;">
+  🏆 랭킹 보이기/숨기기
+</button>
     <div style="margin-bottom:15px; font-weight:600; font-size:1rem; color:#444;">
       현재 자본금: <span id="capital">100,000</span>
     </div>
@@ -144,8 +154,12 @@
   </div>
 <hr>
 
-<div style="margin-top:30px; text-align: left;">
-  <div style="margin-bottom: 15px;">
+  <hr id="outerHr" style="display: none;">
+
+
+<div id="rankingContainer" style="margin-top:30px; text-align: left;">
+  <hr>
+  <div>
     <input
       type="text"
       id="username"
@@ -156,8 +170,10 @@
       style="padding:6px 16px; font-size:1rem; margin-left:10px;">🏅 랭킹 등록</button>
   </div>
 
-  <div id="ranking" style="max-width: 500px;"></div>
+  <div id="ranking" style="max-width: 500px; margin-top: 15px;"></div>
 </div>
+
+
 
 
 
@@ -481,8 +497,31 @@ function saveRanking() {
     }
   });
 }
+const rankingContainer = document.getElementById("rankingContainer");
+const toggleBtn = document.getElementById("toggleRankingBtn");
+
+
+
+
+
+const outerHr = document.querySelector('body > hr');
+if (outerHr) outerHr.style.display = "none"; // 최초에 숨김
+
+rankingContainer.style.display = "none";
+if (outerHr) outerHr.style.display = "none";
+toggleBtn.textContent = "🏆 랭킹 보이기";
+
+toggleBtn.addEventListener("click", () => {
+  const isHidden = rankingContainer.style.display === "none";
+
+  rankingContainer.style.display = isHidden ? "block" : "none";
+  if (outerHr) outerHr.style.display = isHidden ? "block" : "none";
+  toggleBtn.textContent = isHidden ? "🏆 랭킹 숨기기" : "🏆 랭킹 보이기";
+});
+
 
 renderRankingFromFirebase(); // 초기 실행
+
 
   </script>
 </body>
