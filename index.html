@@ -115,7 +115,7 @@
 </head>
 <body>
   <div id="app">
-    <h1>주식 시뮬레이터 (Made By 범서) </h1>
+    <h1>주식 시뮬레이터 (Made By 범서) Ver 1.02 B</h1>
     <div id="timer">다음 주가 갱신까지: <span id="timerSeconds">10</span>초</div>
     <div style="margin-bottom:15px; font-weight:600; font-size:1rem; color:#444;">
       현재 자본금: <span id="capital">100,000</span>
@@ -138,6 +138,26 @@
     </table>
     <div id="eventBox">최근 이벤트가 없습니다.</div>
   </div>
+<hr>
+
+<div style="margin-top:30px; text-align: left;">
+  <div style="margin-bottom: 15px;">
+    <input
+      type="text"
+      id="username"
+      placeholder="이름 입력"
+      style="padding:6px 12px; border-radius:6px; border:1px solid #ccc; font-size:1rem;" />
+    <button
+      onclick="saveRanking()"
+      style="padding:6px 16px; font-size:1rem; margin-left:10px;">🏅 랭킹 등록</button>
+  </div>
+
+  <div id="ranking" style="max-width: 500px;"></div>
+</div>
+
+
+
+
 
   <script>
     const stocks = [
@@ -172,7 +192,6 @@
       return Math.random() * (max - min) + min;
     }
 
-    // 하락 확률을 좀 더 올린 getCustomRandomChange
 function getCustomRandomChange() {
   const rand = Math.random() * 100;
   let percent = 0;
@@ -193,6 +212,9 @@ function getCustomRandomChange() {
 
   return percent;
 }
+
+
+
 
     function updateStocks() {
       stocks.forEach(stock => {
@@ -272,12 +294,15 @@ function getCustomRandomChange() {
         if (capital >= stock.price) {
           stock.owned++;
           capital -= stock.price;
+
         }
       } else if (action === "sell") {
         if (stock.owned > 0) {
           stock.owned--;
           capital += stock.price;
+
         }
+
       }
       updateCapital();
       renderStocks();
@@ -341,6 +366,100 @@ function getCustomRandomChange() {
     // 초기 렌더링
     renderStocks();
     updateCapital();
+
+function getTopInvestmentCategory() {
+  const categoryTotals = {};
+
+  stocks.forEach(stock => {
+    const totalValue = stock.owned * stock.price;
+    if (!categoryTotals[stock.category]) categoryTotals[stock.category] = 0;
+    categoryTotals[stock.category] += totalValue;
+  });
+
+  // 최대값을 가지는 카테고리 추출
+  let topCategory = "없음";
+  let maxValue = 0;
+
+  for (const [category, value] of Object.entries(categoryTotals)) {
+    if (value > maxValue) {
+      maxValue = value;
+      topCategory = category;
+    }
+  }
+
+  return topCategory;
+}
+
+
+    function saveToRanking(username) {
+      if (username === "pleaseresetあ") {
+    localStorage.removeItem("stockRankings");
+    alert("랭킹이 초기화되었습니다.");
+    renderRanking();
+    return;
+  }
+  const rankings = JSON.parse(localStorage.getItem("stockRankings") || "[]");
+const nameExists = rankings.some(r => r.name === username);
+  if (nameExists) {
+    alert("이미 해당 이름으로 등록된 랭킹이 있습니다. 다른 이름을 사용해주세요.");
+    return;
+  }
+
+    const topCategory = getTopInvestmentCategory();
+    rankings.push({
+    name: username,
+    capital,
+    category: topCategory
+  });
+
+  rankings.sort((a, b) => b.capital - a.capital);
+  localStorage.setItem("stockRankings", JSON.stringify(rankings.slice(0, 10)));
+}
+
+function renderRanking() {
+  const rankDiv = document.getElementById("ranking");
+  const rankings = JSON.parse(localStorage.getItem("stockRankings") || "[]");
+
+  if (rankings.length === 0) {
+    rankDiv.innerHTML = "<p style='color:#888;'>등록된 랭킹이 없습니다.</p>";
+    return;
+  }
+
+  rankDiv.innerHTML = `
+    <h3 style="margin-bottom: 12px; color:#222;">🏆 랭킹 TOP 10</h3>
+    <ul style="list-style: none; padding: 0; margin: 0;">
+      ${rankings.map((r, i) => `
+        <li style="
+          background: #f5f7ff;
+          border-left: 4px solid #4364F7;
+          border-radius: 6px;
+          padding: 10px 14px;
+          margin-bottom: 8px;
+          color: #333;
+          font-weight: 500;">
+          <strong style="margin-right: 10px;">${i + 1}위</strong> ${r.name} — 💰 ${formatNumber(r.capital)} 원
+          <div style="font-size: 0.9rem; color:#666;">📊 최대 투자 분야: <strong>${r.category || "없음"}</strong></div>
+        </li>
+      `).join("")}
+    </ul>
+  `;
+}
+
+
+
+
+
+function saveRanking() {
+  const name = document.getElementById("username").value.trim();
+ if (name) {
+    saveToRanking(name);
+    renderRanking();
+    alert(name === "pleaseresetあ" ? "랭킹이 모두 삭제되었습니다." : "랭킹에 등록되었습니다!");
+  }
+}
+
+renderRanking();
+
   </script>
 </body>
 </html>
